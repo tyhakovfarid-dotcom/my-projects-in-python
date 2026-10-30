@@ -1,3 +1,4 @@
+from collections import Counter
 import random
 import json
 import os
@@ -24,7 +25,7 @@ def unsaving(player):
     while True:
         if not os.path.exists("saves/"):
             os.makedirs("saves")
-        t = input("введите название вашего сейва и да .json игра сама добавит от вас требуется только название или выход если его нету")
+        t = input("введите название вашего сейва и да .json игра сама добавит от вас требуется только название или выход если его нету: ")
         if t == "выход":
             return
         file = t+'.json'
@@ -35,13 +36,15 @@ def unsaving(player):
                 player.balance = data['balance']
                 player.mult_dam = data['mult_dam']
                 print(f"✅ Сейв '{file}' успешно загружен! Баланс: {player.balance}")
+                with open("logs/log.log", "a", encoding="utf-8") as f:
+                    f.write(f"\n игрок загрузил сейв {file}")
                 break
         else:
             print("❌ Сейв с таким названием не найден! посмотрите папку saves")
 def saving(player):
     if not os.path.exists("saves/"):
         os.makedirs("saves")
-    name = input("введите название для вашего сейва без .json это добавит сама игра")
+    name = input("введите название для вашего сейва без .json это добавит сама игра: ")
     file = name+'.json'
     path = "saves/"+file
     data = {
@@ -50,15 +53,19 @@ def saving(player):
     }
     with open(path, "w") as f:
         json.dump(data, f)
+    with open("logs/log.log",  "a", encoding="utf-8") as f:
+        f.write(f"\n игрок сделал сейв {file}")
 def battle(player):
     """типо батл с монстром"""
+    with open("logs/log.log", "a", encoding="utf-8") as f:
+        f.write(f"\n игрок зашел в баттл с монстром")
     player.hp = random.randint(250, 300)
     print(f"у вашего героя {player.hp} здоровья")
     monster = character('монстер', random.randint(200, 250), min_damage=20, max_damage=35)
     print(f"у монстра {monster.hp} здоровья")
     while player.hp > 0 and monster.hp > 0:
         player_blocked = False
-        x = input('выберите действие (блок/ударить)').strip().lower()
+        x = input('выберите действие (блок/ударить): ').strip().lower()
         if x == 'блок':
             print('вы заблокировали удар')
             player_blocked = True
@@ -70,42 +77,52 @@ def battle(player):
         if monster.hp <= 0:
             print("🎉 Ты победил! тебе было зачислено 50 монет за убитого монстра")
             player.balance += 50
+            with open("logs/log.log", "a", encoding="utf-8") as f:
+                f.write(f"\n игрок выиграл монстра")
             break
         monster.attack(player, is_blocking=player_blocked)
         print('вас ударил монстр')
         if player.hp <= 0:
             print("💀 Ты проиграл...")
+            with open("logs/log.log", "a", encoding="utf-8") as f:
+                f.write(f"\n игрок проиграл монстру")
             break
     return player
 def casino(player):
     """типа казино"""
-    symbols = ['^', '#', '*', '$']
+    with open("logs/log.log", "a", encoding="utf-8") as f:
+        f.write(f"\n игрок начал игру в казино")
+    symbols = ['^', '#', '*', '$', "&"]
+    i = player.balance
     while player.balance >= 10:
         player.balance -= 10
-        s1 = symbols[random.randint(0, 3)]
-        s2 = symbols[random.randint(0, 3)]
-        s3 = symbols[random.randint(0, 3)]
-        print(f'{s1}{s2}{s3}')
-        if s1 == s2 and s3 == s2:
-            player.balance += 110
-            print('поздаравляю это был ДЖЕЕКПОТ теперь на вашем балансе', player.balance, 'монет')
-        elif s1 == s2:
-            player.balance += 20
-            print('поздравляю вы выиграли 10 монет теперь на вашем балансе', player.balance, 'монет')
-        elif s2 == s3:
-            player.balance += 20
-            print('поздравляю вы выиграли 10 монет теперь на вашем балансе', player.balance, 'монет')
-        elif s1 == s3:
-            player.balance += 20
-            print('поздравляю вы выиграли 10 монет теперь на вашем балансе', player.balance, 'монет')
+        spin = [random.choice(symbols) for _ in range(4)]
+        print(''.join(spin))
+        most = Counter(spin)
+        most_common = most.most_common(1)[0][1]
+        if most_common == 4:
+            player.balance += 160
+            print('🎉 ДЖЕКПОТ! Вы выиграли 150 монет!')
+        elif most_common == 3:
+            player.balance += 35
+            print('вы выиграли 25 монет')
+        elif most_common == 2:
+            player.balance += 5
+            print("вам была возвращена половина ставки")
         else:
             print('охх жаль тебя ты проиграл но не бойся еще выиграешь')
-        d = input('хотите ли вы продолжить да/нет: ').strip().lower()
-        if d == 'нет':
-            print('эхх уже уходишь ну давай я тебя всегда жду снова')
+        g = input('хотите ли вы продолжить 1.да 2.нет: ')
+        if player.balance == 0 or g == "2":
+            print("эхх жаль ты можешь еще зайти когда заработаешь")
+            v = i - player.balance
+            with open("logs/log.log", "a", encoding="utf-8") as f:
+                if v > 0:
+                    f.write(f"\n игрок закончил игру в казино и проиграл {v} монет")
+                elif v < 0:
+                    f.write(f"\n игрок закончил игру в казино и выиграл {-v} монет")
+                else:
+                    f.write(f"\n игрок закончил игру в казино и остался при своих")
             break
-        if player.balance == 0:
-            print("эхх жаль ты проиграл все но ты можешь еще зайти когда заработаешь")
     return player
 def magazine(player):
     """сжалюсь над тобой и сделаю подробнее смотри это магазинчик секира приумножает урон на 1.10 двуручный меч на 1.25 катана на 1.35"""
@@ -113,21 +130,25 @@ def magazine(player):
     print("секира стоит 125 монеточек она дает усиление в 1.10 раза ")
     print("двуручный меч стоит 250 монеточек он дает усиление в 1.25 раза")
     print("катана стоит 500 монеточек она дает усиление в 1.35 раза")
-    weapon = input('введите оружие которое хотите купить 1.секира / 2.двуручный меч / 3.катана')
+    weapon = input('введите оружие которое хотите купить 1.секира / 2.двуручный меч / 3.катана: ')
     if weapon == '1' and player.balance >= 125:
-        if player.mult_dam >= 1.10 or player.mult_dam == 1.10:
+        if player.mult_dam >= 1.10:
             print("нет вы не можете купить оружие ниже или такое же")
         else:
             player.balance -= 125
             player.mult_dam = 1.10
             print("вы купили секиру!")
+            with open("logs/log.log", "a", encoding="utf-8") as f:
+                f.write(f"\n игрок купил секиру")
     elif weapon == '2' and player.balance >= 250:
-        if player.mult_dam >= 1.25 or player.mult_dam == 1.25:
+        if player.mult_dam >= 1.25:
             print("нет вы не можете купить оружие ниже или такое же")
         else:
             player.balance -= 250
             player.mult_dam = 1.25
             print("вы купили двуручный меч!")
+            with open("logs/log.log", "a", encoding="utf-8") as f:
+                f.write(f"\n игрок купил двуручный меч")
     elif weapon == '3' and player.balance >= 500:
         if player.mult_dam == 1.35:
             print("у вас уже есть катана")
@@ -135,14 +156,23 @@ def magazine(player):
             player.balance -= 500
             player.mult_dam = 1.35
             print("вы купили катану!")
+            with open("logs/log.log", "a", encoding="utf-8") as f:
+                f.write(f"\n игрок купил катану")
     else:
         print('а нука вали нищий')
-game = input("если у вас есть сейв и выхотите начать с него напишите 1 если у вас его нету или вы хотите начать с нуля напишите 2")
+def log():
+    if not os.path.exists("logs/"):
+        os.makedirs("logs")
+    if not os.path.exists("logs/log.log"):
+        with open("logs/log.log", "w", encoding="utf-8") as f:
+            f.write("лог создан")
+log()
+game = input("если у вас есть сейв и выхотите начать с него напишите 1 если у вас его нету или вы хотите начать с нуля напишите 2: ")
 if game == '1':
     unsaving(player)
 while True:
     print(f"\n[Баланс: {player.balance} | Множитель урона: x{player.mult_dam}]")
-    main = input('введите действие для вашего персонажа 1.убить монстра / 2.сыграть в казино / 3.купить чтото в магазинчике / 4.выход / и да нужно вводить имено цифру действия')
+    main = input('введите действие для вашего персонажа 1.убить монстра / 2.сыграть в казино / 3.купить чтото в магазинчике / 4.выход: ')
     if main == '1':
         battle(player)
         print(f"Твой баланс после боя: {player.balance}")
