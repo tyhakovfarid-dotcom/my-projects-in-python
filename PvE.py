@@ -83,7 +83,7 @@ def battle(player):
         monster.attack(player, is_blocking=player_blocked)
         print('вас ударил монстр')
         if player.hp <= 0:
-            print("💀 Ты проиграл...")
+            )
             with open("logs/log.log", "a", encoding="utf-8") as f:
                 f.write(f"\n игрок проиграл монстру")
             break
