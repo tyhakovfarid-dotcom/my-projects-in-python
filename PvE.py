@@ -2,24 +2,7 @@ from collections import Counter
 import random
 import json
 import os
-class character:
-    """бля лучше не трогай без этой хуйни ляжет весь код"""
-    def __init__(self,name,hp,min_damage,max_damage):
-        self.name=name
-        self.hp=hp
-        self.min_damage=min_damage
-        self.max_damage=max_damage
-        self.balance=20
-        self.mult_dam = 1
-        # типо умножение урона от оружия
-    def attack(self, target, is_blocking=False,):
-        damage= int(random.randint(self.min_damage,self.max_damage) * self.mult_dam)
-        if is_blocking == True:
-            damage = int(damage * 0.25)
-            print(f'{target.name} заблокировал 75 процентов урона')
-        target.hp -= damage
-        print(f"{self.name} бьет {target.name} на {damage} урона! У {target.name} осталось {target.hp} HP.")
-player = character('герой', random.randint(250, 300), min_damage=35, max_damage=45)
+from game_logic import character
 def unsaving(player):
     # ну знаешь это типо сейв я сам не ебу почему оно работает но оно работает, вроде
     while True:
@@ -83,7 +66,7 @@ def battle(player):
         monster.attack(player, is_blocking=player_blocked)
         print('вас ударил монстр')
         if player.hp <= 0:
-            )
+            print("💀 Ты проиграл...")
             with open("logs/log.log", "a", encoding="utf-8") as f:
                 f.write(f"\n игрок проиграл монстру")
             break
