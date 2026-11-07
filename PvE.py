@@ -3,6 +3,9 @@ import random
 import json
 import os
 from game_logic import character
+
+player = character('герой', random.randint(250, 300), 35, 45)
+
 def unsaving(player):
     # ну знаешь это типо сейв я сам не ебу почему оно работает но оно работает, вроде
     while True:
@@ -169,3 +172,5 @@ while True:
         saving(player)
         print("пока")
         break
+
+#кошка-пингвин: "хозяин ну наконец то ты дописал код"

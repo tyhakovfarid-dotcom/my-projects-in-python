@@ -44,3 +44,5 @@ def load_or_create_player(user_id):
         player.balance = data["balance"]
         player.mult_dam = data["mult_dam"]
     return player
+
+#кошка-пингвин: "хозяин ну наконец то ты дописал код"

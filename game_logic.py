@@ -1,7 +1,7 @@
 import random
 
 class character:
-    """бля лучше не трогай без этой хуйни ляжет весь код"""
+    """лучше не трогать без этой херни ляжет pve_bot и pve"""
     def __init__(self, name, hp, min_damage, max_damage):
         self.name = name
         self.hp = hp
@@ -21,3 +21,5 @@ class character:
             target.hp = 0
         kish = f"{self.name} бьет {target.name} на {damage} урона! У {target.name} осталось {target.hp} HP."
         return kish, mish
+
+#кошка-пингвин: "хозяин ну наконец то ты дописал код"
