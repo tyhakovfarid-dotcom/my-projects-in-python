@@ -7,7 +7,7 @@ from tg_handles import handle_block, handle_attack, handle_battle, handle_casino
 save_exist()
 token = get_token()
 
-async def start(update: Update):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("⚔️ В бой", callback_data="battle")],
         [InlineKeyboardButton("🎰 Казино", callback_data="casino")],
