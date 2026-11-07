@@ -5,7 +5,6 @@ from game_logic import character
 from tg_utils import safe_edit
 from collections import Counter
 
-
 async def handle_battle(user_id, query, context, player):
     log_write(user_id, "игрок начал баттл с монстром")
     player.hp = random.randint(250, 300)
@@ -22,22 +21,23 @@ async def handle_battle(user_id, query, context, player):
         reply_markup=reply_markup
     )
 
-
-async def handle_casino(user_id, query, player):
+async def handle_casino(user_id, query, context, player):
+    total_bet = context.user_data.get('bet', 10)
     keyboard = [
         [InlineKeyboardButton("🎰 спин", callback_data="spin")],
+        [InlineKeyboardButton("ставка 2х", callback_data="bet_2x"), InlineKeyboardButton("ставка 0.5х", callback_data="bet_0.5x")],
+        [InlineKeyboardButton("ставка ва-банк", callback_data="va-bank")],
         [InlineKeyboardButton("🔙 В меню", callback_data="menu")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await safe_edit(
         query,
-        f"Привет ты в начальном меню казино у тебя {player.balance} монет",
+        f"Привет ты в начальном меню казино у тебя {player.balance} монет.\nТекущая ставка: {total_bet}",
         reply_markup=reply_markup
     )
     log_write(user_id, "игрок зашел в казино")
 
-
-async def handle_shop(user_id, query, player):
+async def handle_shop(user_id, query, context, player):
     keyboard = [
         [InlineKeyboardButton("Секира (125): 🪓", callback_data="sekira")],
         [InlineKeyboardButton("Двуручный меч (250): ⚔️", callback_data="sword")],
@@ -52,8 +52,7 @@ async def handle_shop(user_id, query, player):
     )
     log_write(user_id, "игрок зашел в магазин")
 
-
-async def handle_attack(query, context, player, user_id):
+async def handle_attack(user_id, query, context, player):
     monster = context.user_data.get('monster')
     result_text = ""
     kish, mish = player.attack(monster)
@@ -89,7 +88,6 @@ async def handle_attack(query, context, player, user_id):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await safe_edit(query, result_text, reply_markup=reply_markup)
 
-
 async def handle_block(user_id, query, context, player):
     result_text = ""
     monster = context.user_data.get('monster')
@@ -112,9 +110,9 @@ async def handle_block(user_id, query, context, player):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await safe_edit(query, result_text, reply_markup=reply_markup)
 
-
-async def handle_spin(query, player, user_id):
-    if player.balance < 10:
+async def handle_spin(user_id, query, context, player):
+    total_bet = context.user_data.get('bet', 10)
+    if player.balance < total_bet:
         keyboard = [
             [InlineKeyboardButton("⚔️ В бой", callback_data="battle")],
             [InlineKeyboardButton("🔙 В меню", callback_data="menu")]
@@ -122,14 +120,14 @@ async def handle_spin(query, player, user_id):
         reply_markup = InlineKeyboardMarkup(keyboard)
         await safe_edit(
             query,
-            "✖️ у вас нету 10 монет на спин, вы можете пойти сразиться с монстром что бы заработать",
+            f"✖️ у вас нету {total_bet} монет на спин, вы можете пойти сразиться с монстром что бы заработать",
             reply_markup=reply_markup
         )
         log_write(user_id, "игроку не хватило денег на спин")
         return
 
     symbols = ['^', '#', '*', '$', "&"]
-    player.balance -= 10
+    player.balance -= total_bet
     spin = [random.choice(symbols) for _ in range(4)]
     most = Counter(spin)
     most_common = most.most_common(1)[0][1]
@@ -141,25 +139,25 @@ async def handle_spin(query, player, user_id):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     if most_common == 4:
-        player.balance += 160
+        player.balance += int(total_bet * 3)
         await safe_edit(
             query,
-            f"{''.join(spin)}\n\n🎉 ДЖЕКПОТ! Вы выиграли 150 монет!",
+            f"{''.join(spin)}\n\n🎉 ДЖЕКПОТ! Вы выиграли 3х!",
             reply_markup=reply_markup
         )
         log_write(user_id, "игрок выбил джекпот")
 
     elif most_common == 3:
-        player.balance += 35
+        player.balance += int(total_bet * 1.5)
         await safe_edit(
             query,
-            f"{''.join(spin)}\n\nВы выиграли 25 монет!",
+            f"{''.join(spin)}\n\nВы выиграли 1.5х!",
             reply_markup=reply_markup
         )
-        log_write(user_id, "игрок выиграл 25 монет")
+        log_write(user_id, "игрок выбил 1.5х")
 
     elif most_common == 2:
-        player.balance += 5
+        player.balance += int(total_bet * 0.5)
         await safe_edit(
             query,
             f"{''.join(spin)}\n\nвам вернули половину ставки",
@@ -173,22 +171,17 @@ async def handle_spin(query, player, user_id):
             f"{''.join(spin)}\n\nк сожалению ты проиграл",
             reply_markup=reply_markup
         )
-        log_write(user_id, "игрок проиграл 10 монет")
+        log_write(user_id, f"игрок проиграл {total_bet} монет")
     save_player(user_id, player)
 
-
-async def handle_sekira(query, player, user_id):
+async def handle_sekira(user_id, query, context, player):
     if player.balance < 125:
         keyboard = [
             [InlineKeyboardButton("⚔️ В бой", callback_data="battle")],
             [InlineKeyboardButton("🔙 В меню", callback_data="menu")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await safe_edit(
-            query,
-            "у вас не хватает денег",
-            reply_markup=reply_markup
-        )
+        await safe_edit(query, "у вас не хватает денег", reply_markup=reply_markup)
 
     elif player.mult_dam >= 1.10:
         keyboard = [
@@ -196,11 +189,7 @@ async def handle_sekira(query, player, user_id):
             [InlineKeyboardButton("🔙 В меню", callback_data="menu")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await safe_edit(
-            query,
-            "вы не можете купить оружие ниже или такое же",
-            reply_markup=reply_markup
-        )
+        await safe_edit(query, "вы не можете купить оружие ниже или такое же", reply_markup=reply_markup)
 
     else:
         player.balance -= 125
@@ -212,26 +201,17 @@ async def handle_sekira(query, player, user_id):
             [InlineKeyboardButton("🔙 В меню", callback_data="menu")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await safe_edit(
-            query,
-            f"✅ Вы купили секиру! Теперь ваш урон x{player.mult_dam}. Баланс: {player.balance}",
-            reply_markup=reply_markup
-        )
+        await safe_edit(query, f"✅ Вы купили секиру! Теперь ваш урон x{player.mult_dam}. Баланс: {player.balance}", reply_markup=reply_markup)
         log_write(user_id, "игрок купил секиру")
 
-
-async def handle_sword(query, player, user_id):
+async def handle_sword(user_id, query, context, player):
     if player.balance < 250:
         keyboard = [
             [InlineKeyboardButton("⚔️ В бой", callback_data="battle")],
             [InlineKeyboardButton("🔙 В меню", callback_data="menu")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await safe_edit(
-            query,
-            "у вас не хватает денег",
-            reply_markup=reply_markup
-        )
+        await safe_edit(query, "у вас не хватает денег", reply_markup=reply_markup)
 
     elif player.mult_dam >= 1.25:
         keyboard = [
@@ -239,11 +219,7 @@ async def handle_sword(query, player, user_id):
             [InlineKeyboardButton("🔙 В меню", callback_data="menu")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await safe_edit(
-            query,
-            "вы не можете купить оружие ниже или такое же",
-            reply_markup=reply_markup
-        )
+        await safe_edit(query, "вы не можете купить оружие ниже или такое же", reply_markup=reply_markup)
 
     else:
         player.balance -= 250
@@ -255,38 +231,22 @@ async def handle_sword(query, player, user_id):
             [InlineKeyboardButton("🔙 В меню", callback_data="menu")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await safe_edit(
-            query,
-            f"✅ Вы купили двуручный меч! Теперь ваш урон x{player.mult_dam}. Баланс: {player.balance}",
-            reply_markup=reply_markup
-        )
+        await safe_edit(query, f"✅ Вы купили двуручный меч! Теперь ваш урон x{player.mult_dam}. Баланс: {player.balance}", reply_markup=reply_markup)
         log_write(user_id, "игрок купил двуручный меч")
 
-
-async def handle_catana(query, player, user_id):
+async def handle_catana(user_id, query, context, player):
     if player.balance < 500:
         keyboard = [
             [InlineKeyboardButton("⚔️ В бой", callback_data="battle")],
             [InlineKeyboardButton("🔙 В меню", callback_data="menu")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await safe_edit(
-            query,
-            "у вас не хватает денег",
-            reply_markup=reply_markup
-        )
-
+        await safe_edit(query, "у вас не хватает денег", reply_markup=reply_markup)
 
     elif player.mult_dam == 1.35:
-        keyboard = [
-            [InlineKeyboardButton("🔙 В меню", callback_data="menu")]
-        ]
+        keyboard = [[InlineKeyboardButton("🔙 В меню", callback_data="menu")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await safe_edit(
-            query,
-            "вы не можете купить оружие ниже или такое же",
-            reply_markup=reply_markup
-        )
+        await safe_edit(query, "вы не можете купить оружие ниже или такое же", reply_markup=reply_markup)
 
     else:
         player.balance -= 500
@@ -298,23 +258,39 @@ async def handle_catana(query, player, user_id):
             [InlineKeyboardButton("🔙 В меню", callback_data="menu")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await safe_edit(
-            query,
-            f"✅ Вы купили катану! Теперь ваш урон x{player.mult_dam}. Баланс: {player.balance}",
-            reply_markup=reply_markup
-        )
+        await safe_edit(query, f"✅ Вы купили катану! Теперь ваш урон x{player.mult_dam}. Баланс: {player.balance}", reply_markup=reply_markup)
         log_write(user_id, "игрок купил катану")
 
-
-async def handle_menu(query):
+async def handle_menu(user_id, query, context, player):
     keyboard = [
         [InlineKeyboardButton("⚔️ В бой", callback_data="battle")],
         [InlineKeyboardButton("🎰 Казино", callback_data="casino")],
         [InlineKeyboardButton("🛒 Магазин", callback_data="shop")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await safe_edit(
-        query,
-        "Привет! Выбирай действие:",
-        reply_markup=reply_markup
-    )
+    await safe_edit(query, "Привет! Выбирай действие:", reply_markup=reply_markup)
+
+async def handle_bet_x2(user_id, query, context, player):
+    total_bet = context.user_data.get('bet', 10) * 2
+    if total_bet > player.balance:
+        await query.answer("Вам не хватает денег на это действие", show_alert=True)
+    else:
+        context.user_data['bet'] = total_bet
+        await handle_casino(user_id, query, context, player)
+
+async def handle_bet_x05(user_id, query, context, player):
+    total_bet = int(context.user_data.get('bet', 10) * 0.5)
+    if total_bet > player.balance:
+        await query.answer("Вам не хватает денег на это действие", show_alert=True)
+    elif total_bet < 1:
+        await query.answer("Это ниже 1 ставку делать нельзя", show_alert=True)
+    else:
+        context.user_data['bet'] = total_bet
+        await handle_casino(user_id, query, context, player)
+
+async def handle_va_bank(user_id, query, context, player):
+    if player.balance < 1:
+        await query.answer("У тебя нет денег даже на ва-банк!", show_alert=True)
+    else:
+        context.user_data['bet'] = player.balance
+        await handle_casino(user_id, query, context, player)
